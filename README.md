@@ -27,7 +27,22 @@ A default user is seeded on first startup: **`isidro` / `isidro`**.
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - OpenAPI JSON: http://localhost:8080/v3/api-docs
 - H2 console: http://localhost:8080/h2-console
-  (JDBC URL `jdbc:h2:file:./data/simpleapi`, user `sa`, empty password)
+
+### H2 console access
+
+The console is reachable remotely (`spring.h2.console.settings.web-allow-others=true`) and is
+protected by **HTTP Basic** on the `/h2-console/**` route (separate security chain), so the
+browser first asks for the app user:
+
+1. Browser prompt (HTTP Basic): **`isidro` / `isidro`**
+2. Then, in the console form: JDBC URL `jdbc:h2:file:./data/simpleapi;AUTO_SERVER=TRUE`,
+   user `sa`, empty password.
+
+> ⚠️ **Production warning:** exposing the H2 console publicly means a DB admin UI on the
+> internet. The Basic gate uses the weak demo credential `isidro/isidro` and the DB login is
+> `sa` with no password. For real use: change these credentials, put an edge gate in front
+> (e.g. Cloudflare Access / IP allowlist) or — best — disable the console in production and
+> inspect the DB over an SSH tunnel to `localhost` instead.
 
 ## Authentication flow
 

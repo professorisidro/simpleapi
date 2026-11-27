@@ -3,10 +3,13 @@ package com.professorisidro.simpleapi.config;
 import com.professorisidro.simpleapi.security.CustomUserDetailsService;
 import com.professorisidro.simpleapi.security.JwtAuthFilter;
 import com.professorisidro.simpleapi.security.JwtAuthenticationEntryPoint;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -24,8 +27,7 @@ public class SecurityConfig {
             "/api/auth/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/h2-console/**"
+            "/swagger-ui.html"
     };
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -40,12 +42,38 @@ public class SecurityConfig {
         this.userDetailsService = userDetailsService;
     }
 
+    /**
+     * Chain 1 (highest precedence): the H2 console.
+     * Protected with HTTP Basic so the DB admin UI is NOT open to the internet.
+     * The browser prompts for credentials (the seeded user) before the console is reachable.
+     * This is a last-resort gate — prefer not exposing the console publicly at all.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain h2ConsoleFilterChain(HttpSecurity http) throws Exception {
+        http
+                // Matches the H2 console servlet path (not an MVC mapping), so a plain
+                // string matcher would resolve to an MvcRequestMatcher and never match.
+                .securityMatcher(PathRequest.toH2Console())
+                .csrf(csrf -> csrf.disable())
+                // The H2 console renders inside frames.
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults())
+                .authenticationProvider(authenticationProvider())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        return http.build();
+    }
+
+    /**
+     * Chain 2: the REST API, secured with stateless JWT.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                // Allow the H2 console to render inside a frame.
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
