@@ -34,10 +34,14 @@ class AuthIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized());
     }
 
+    // Acompanha a configuração de segurança ATIVA. Hoje todas as rotas estão
+    // abertas (openFilterChain), então um endpoint sem token retorna 200.
+    // Se você reativar o JWT (apiFilterChain), troque de volta para
+    // status().isUnauthorized().
     @Test
-    void protectedEndpoint_withoutToken_returns401() throws Exception {
+    void endpointWithoutToken_returns200_whenRoutesAreOpen() throws Exception {
         mockMvc.perform(get("/api/customers"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
     }
 
     @Test

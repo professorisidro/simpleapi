@@ -43,12 +43,31 @@ public class SecurityConfig {
         this.userDetailsService = userDetailsService;
     }
 
-    /**
-     * Chain 1 (highest precedence): the H2 console.
-     * Protected with HTTP Basic so the DB admin UI is NOT open to the internet.
-     * The browser prompts for credentials (the seeded user) before the console is reachable.
-     * This is a last-resort gate — prefer not exposing the console publicly at all.
-     */
+    // ============================================================================
+    // CONFIGURAÇÃO ATIVA: TODAS AS ROTAS ABERTAS (sem autenticação).
+    // Para voltar a exigir autenticação: comente o bean abaixo e descomente o
+    // bloco "CONFIGURAÇÃO COM AUTENTICAÇÃO" mais adiante.
+    // Obs.: /api/auth/login continua validando a senha (isso é feito no endpoint,
+    // não aqui), mas nenhum endpoint exige mais o token.
+    // ============================================================================
+    @Bean
+    public SecurityFilterChain openFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                // Libera os frames do console H2.
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        return http.build();
+    }
+
+    /* ============================================================================
+     * CONFIGURAÇÃO COM AUTENTICAÇÃO (DESATIVADA).
+     * Para reativar: descomente os dois beans abaixo (h2ConsoleFilterChain e
+     * apiFilterChain) e comente o openFilterChain acima.
+     *   - Chain 1: /h2-console protegido por HTTP Basic
+     *   - Chain 2: API protegida por JWT (stateless)
+     * ============================================================================
+
     @Bean
     @Order(1)
     @ConditionalOnProperty(prefix = "spring.h2.console", name = "enabled", havingValue = "true")
@@ -68,9 +87,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Chain 2: the REST API, secured with stateless JWT.
-     */
     @Bean
     @Order(2)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
@@ -87,7 +103,10 @@ public class SecurityConfig {
 
         return http.build();
     }
+    */
 
+    // Beans de autenticação — usados pelo endpoint de login (/api/auth/login) e
+    // pela configuração com JWT/Basic quando reativada.
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
