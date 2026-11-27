@@ -3,6 +3,7 @@ package com.professorisidro.simpleapi.config;
 import com.professorisidro.simpleapi.security.CustomUserDetailsService;
 import com.professorisidro.simpleapi.security.JwtAuthFilter;
 import com.professorisidro.simpleapi.security.JwtAuthenticationEntryPoint;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,6 +51,7 @@ public class SecurityConfig {
      */
     @Bean
     @Order(1)
+    @ConditionalOnProperty(prefix = "spring.h2.console", name = "enabled", havingValue = "true")
     public SecurityFilterChain h2ConsoleFilterChain(HttpSecurity http) throws Exception {
         http
                 // Matches the H2 console servlet path (not an MVC mapping), so a plain
